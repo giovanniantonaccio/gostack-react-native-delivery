@@ -54,12 +54,29 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', {
+      id,
+    });
   }
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // Load Foods from API
+      try {
+        let url = `/foods?name_like=${searchValue}`;
+
+        if (selectedCategory) {
+          url = `/foods?category_like=${String(selectedCategory)}`;
+        }
+
+        const result = await api.get<Food[]>(url);
+        const formattedFoods = result.data.map(food => ({
+          ...food,
+          formattedPrice: formatValue(food.price),
+        }));
+        setFoods(formattedFoods);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     loadFoods();
@@ -67,16 +84,28 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      try {
+        const result = await api.get('/categories');
+        setCategories(result.data);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     loadCategories();
   }, []);
 
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    setSearchValue('');
+    setSelectedCategory(previous => (previous === id ? undefined : id));
   }
 
+  function handleSearch(value: string): void {
+    if (selectedCategory) {
+      setSelectedCategory(undefined);
+    }
+    setSearchValue(value);
+  }
   return (
     <Container>
       <Header>
@@ -91,7 +120,7 @@ const Dashboard: React.FC = () => {
       <FilterContainer>
         <SearchInput
           value={searchValue}
-          onChangeText={setSearchValue}
+          onChangeText={value => handleSearch(value)}
           placeholder="Qual comida você procura?"
         />
       </FilterContainer>
